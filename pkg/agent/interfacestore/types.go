@@ -52,9 +52,9 @@ type TunnelInterfaceConfig struct {
 }
 
 type InterfaceConfig struct {
-	// Unique ID of the interface. Used as name of OVS port and interface.
+	Type InterfaceType
+	// Unique name of the interface, also used for the OVS port name.
 	InterfaceName string
-	Type          InterfaceType
 	IP            net.IP
 	MAC           net.HardwareAddr
 	*OVSPortConfig
@@ -67,8 +67,8 @@ type InterfaceConfig struct {
 type InterfaceStore interface {
 	Initialize(interfaces []*InterfaceConfig)
 	AddInterface(interfaceConfig *InterfaceConfig)
-	DeleteInterface(interfaceName string)
-	GetInterface(interfaceName string) (*InterfaceConfig, bool)
+	DeleteInterface(interfaceConfig *InterfaceConfig)
+	GetInterface(interfaceKey string) (*InterfaceConfig, bool)
 	GetContainerInterface(podName string, podNamespace string) (*InterfaceConfig, bool)
 	GetNodeTunnelInterface(nodeName string) (*InterfaceConfig, bool)
 	GetContainerInterfaceNum() int

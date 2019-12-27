@@ -46,29 +46,47 @@ type interfaceCache struct {
 
 func (c *interfaceCache) Initialize(interfaces []*InterfaceConfig) {
 	for _, intf := range interfaces {
-		c.cache[intf.InterfaceName] = intf
+		key := getInterfaceKey(intf)
+		c.cache[key] = intf
 	}
 }
 
-// AddInterface adds interfaceConfig into localCache
+// getInterfaceKey returns the key to access interfaceConfig from the cache.
+func getInterfaceKey(interfaceConfig *InterfaceConfig) string {
+	var key string
+	if interfaceConfig.Type == ContainerInterface {
+		key = util.GenerateContainerInterfaceKey(interfaceConfig.PodName, interfaceConfig.PodNamespace)
+	} else if interfaceConfig.Type == TunnelInterface && interfaceConfig.TunnelInterfaceConfig != nil {
+		// Tunnel interface for a Node.
+		key = util.GenerateNodeTunnelInterfaceKey(interfaceConfig.NodeName)
+	} else {
+		// Use the interface name as the key by default.
+		key = interfaceConfig.InterfaceName
+	}
+	return key
+}
+
+// AddInterface adds interfaceConfig into local cache.
 func (c *interfaceCache) AddInterface(interfaceConfig *InterfaceConfig) {
+	key := getInterfaceKey(interfaceConfig)
 	c.Lock()
 	defer c.Unlock()
-	c.cache[interfaceConfig.InterfaceName] = interfaceConfig
+	c.cache[key] = interfaceConfig
 }
 
-// DeleteInterface deletes interface from local cache
-func (c *interfaceCache) DeleteInterface(interfaceName string) {
+// DeleteInterface deletes interface from local cache.
+func (c *interfaceCache) DeleteInterface(interfaceConfig *InterfaceConfig) {
+	key := getInterfaceKey(interfaceConfig)
 	c.Lock()
 	defer c.Unlock()
-	delete(c.cache, interfaceName)
+	delete(c.cache, key)
 }
 
-// GetInterface retrieves interface from local cache
-func (c *interfaceCache) GetInterface(interfaceName string) (*InterfaceConfig, bool) {
+// GetInterface retrieves interface from local cache given the interface key.
+func (c *interfaceCache) GetInterface(interfaceKey string) (*InterfaceConfig, bool) {
 	c.RLock()
 	defer c.RUnlock()
-	iface, found := c.cache[interfaceName]
+	iface, found := c.cache[interfaceKey]
 	return iface, found
 }
 
@@ -102,19 +120,19 @@ func (c *interfaceCache) GetInterfaceIDs() []string {
 
 // GetPodInterface retrieves InterfaceConfig for the Pod.
 func (c *interfaceCache) GetContainerInterface(podName string, podNamespace string) (*InterfaceConfig, bool) {
-	ovsPortName := util.GenerateContainerInterfaceName(podName, podNamespace)
+	key := util.GenerateContainerInterfaceKey(podName, podNamespace)
 	c.RLock()
 	defer c.RUnlock()
-	iface, ok := c.cache[ovsPortName]
+	iface, ok := c.cache[key]
 	return iface, ok
 }
 
 // GetNodeTunnelInterface retrieves InterfaceConfig for the tunnel to the Node.
 func (c *interfaceCache) GetNodeTunnelInterface(nodeName string) (*InterfaceConfig, bool) {
-	ovsPortName := util.GenerateTunnelInterfaceName(nodeName)
+	key := util.GenerateTunnelInterfaceName(nodeName)
 	c.RLock()
 	defer c.RUnlock()
-	iface, ok := c.cache[ovsPortName]
+	iface, ok := c.cache[key]
 	return iface, ok
 }
 

@@ -259,6 +259,7 @@ func (c *Controller) deleteNodeRoute(nodeName string) error {
 				interfaceConfig.InterfaceName, nodeName, err)
 			return fmt.Errorf("failed to delete OVS tunnel port for Node %s", nodeName)
 		}
+		c.interfaceStore.DeleteInterface(interfaceConfig)
 	}
 	return nil
 }
